@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract TShirtStore is ERC20, Ownable {
+    enum TShirtType { PUMA, US_POLO }
+
+    event TShirtPurchased(address indexed account, TShirtType tShirtType, uint256 tShirtCost);
+
+    mapping(address => TShirtType) public userTShirts;
+
+    uint256 public constant Puma_TShirt_Cost = 300;
+    uint256 public constant USPolo_TShirt_Cost = 500;
+
+    constructor(address initialOwner) ERC20("DEGEN", "DGN") Ownable(initialOwner) {}
+
+    function mintTokens(address to, uint256 tokenAmount) public onlyOwner {
+        _mint(to, tokenAmount);
+    }
+
+    function BurnTokens(uint256 tokenAmount) public {
+        require(tokenAmount > 0, "The token amount to destroy must be greater than zero");
+        require(balanceOf(msg.sender) >= tokenAmount, "Insufficient funds for token destruction");
+        _burn(msg.sender, tokenAmount);
+    }
+
+    function RedeemTShirt(uint8 tShirtTypeNumber) public {
+        require(tShirtTypeNumber >= 1 && tShirtTypeNumber <= 2, "Invalid T-shirt type");
+
+        TShirtType tShirtType;
+        uint256 tShirtCost;
+
+        if (tShirtTypeNumber == 1) {
+            require(balanceOf(msg.sender) >= Puma_TShirt_Cost, "Insufficient funds for T-shirt purchase");
+            tShirtType = TShirtType.PUMA;
+            tShirtCost = Puma_TShirt_Cost;
+            _burn(msg.sender, tShirtCost);
+        } else {
+            require(balanceOf(msg.sender) >= USPolo_TShirt_Cost, "Insufficient funds for T-shirt purchase");
+            tShirtType = TShirtType.US_POLO;
+            tShirtCost = USPolo_TShirt_Cost;
+            _burn(msg.sender, tShirtCost);
+        }
+
+        userTShirts[msg.sender] = tShirtType;
+        emit TShirtPurchased(msg.sender, tShirtType, tShirtCost);
+    }
+
+    function transferTokens(address user, uint256 tokenAmount) external {
+        require(user != address(0), "Invalid user address provided");
+        require(balanceOf(msg.sender) >= tokenAmount, "Insufficient funds for token transfer");
+        _transfer(msg.sender, user, tokenAmount);
+    }
+
+    function getUserTShirtType(address user) external view returns (TShirtType) {
+        return userTShirts[user];
+    }
+}
